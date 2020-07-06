@@ -60,7 +60,7 @@ extern crate chrono;
 extern crate cron;
 extern crate uuid;
 
-use chrono::{offset, DateTime, Duration, Utc};
+use chrono::{offset, DateTime, Duration, Local};
 pub use cron::Schedule;
 pub use uuid::Uuid;
 
@@ -68,7 +68,7 @@ pub use uuid::Uuid;
 pub struct Job<'a> {
     schedule: Schedule,
     run: Box<(FnMut() -> ()) + 'a>,
-    last_tick: Option<DateTime<Utc>>,
+    last_tick: Option<DateTime<Local>>,
     limit_missed_runs: usize,
     job_id: Uuid,
 }
@@ -83,9 +83,9 @@ impl<'a> Job<'a> {
     /// Job::new(s, || println!("I have a complex schedule...") );
     /// ```
     pub fn new<T>(schedule: Schedule, run: T) -> Job<'a>
-    where
-        T: 'a,
-        T: FnMut() -> (),
+        where
+            T: 'a,
+            T: FnMut() -> (),
     {
         Job {
             schedule,
@@ -97,7 +97,7 @@ impl<'a> Job<'a> {
     }
 
     fn tick(&mut self) {
-        let now = Utc::now();
+        let now = Local::now();
         if self.last_tick.is_none() {
             self.last_tick = Some(now);
             return;
@@ -143,9 +143,9 @@ impl<'a> Job<'a> {
     /// let mut job = Job::new("0/1 * * * * *".parse().unwrap(), || {
     ///     println!("I get executed every 1 seconds!");
     /// });
-    /// job.last_tick(Some(Utc::now()));
+    /// job.last_tick(Some(Local::now()));
     /// ```
-    pub fn last_tick(&mut self, last_tick: Option<DateTime<Utc>>) {
+    pub fn last_tick(&mut self, last_tick: Option<DateTime<Local>>) {
         self.last_tick = last_tick;
     }
 }
@@ -234,9 +234,9 @@ impl<'a> JobScheduler<'a> {
             return std::time::Duration::from_millis(500);
         }
         let mut duration = Duration::zero();
-        let now = Utc::now();
+        let now = Local::now();
         for job in self.jobs.iter() {
-            for event in job.schedule.upcoming(offset::Utc).take(1) {
+            for event in job.schedule.upcoming(offset::Local).take(1) {
                 let d = event - now;
                 if duration.is_zero() || d < duration {
                     duration = d;
